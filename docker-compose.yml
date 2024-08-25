@@ -1,0 +1,137 @@
+name: my-environment
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile-php
+    container_name: my-php-container
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - app-network
+    entrypoint: ["php-fpm"]
+    depends_on:
+      - mysql
+      - postgres
+      - mongodb
+    environment:
+      - MYSQL_HOST=mysql
+      - POSTGRES_HOST=postgres
+
+  nginx:
+    image: nginx:latest
+    container_name: my-nginx-container
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    networks:
+      - app-network
+    depends_on:
+      - php
+
+  node:
+    image: node:latest
+    container_name: my-node-container
+    volumes:
+      - ./src:/usr/src/app
+    networks:
+      - app-network
+
+  python:
+    image: python:latest
+    container_name: my-python-container
+    volumes:
+      - ./src:/usr/src/app
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:latest
+    container_name: my-mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:latest
+    container_name: my-postgres-container
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: my-mongo-container
+    hostname: mongodb
+    volumes:
+      - mongodb-data:/data/db/
+      - mongodb-log:/var/log/mongodb/
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "${MONGO_PORT}:27017"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    container_name: my-redis-container
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    container_name: my-adminer-container
+    ports:
+      - "${ADMINER_PORT}:8080"
+    networks:
+      - app-network
+    depends_on:
+      - mysql
+      - postgres
+      - mongodb
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_PORT: ${MONGO_PORT}
+      ME_CONFIG_MONGODB_SERVER: ${MONGO_SERVER}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+    ports:
+      - ${MONGO_EXPRESS_PORT}:8081
+    networks:
+      - app-network
+    depends_on:
+      - mongodb
+
+volumes:
+  mongodb-data:
+    driver: local
+    name: mongo-data
+  mongodb-log:
+    driver: local
+    name: mongo-log
+
+networks:
+  app-network:
+    driver: bridge

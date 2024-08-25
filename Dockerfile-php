@@ -1,0 +1,13 @@
+FROM php:8.3-fpm
+
+# Install the required packages and the PHP MongoDB extension
+RUN apt-get update && apt-get install -y \
+    libssl-dev \
+    && pecl install mongodb \
+    && docker-php-ext-enable mongodb
+
+# Copy the existing source code into the container
+COPY ./src /var/www/html
+
+# Set the working directory
+WORKDIR /var/www/html
